@@ -1,24 +1,24 @@
-
-name: Mantener Supabase activo
+name: Supabase keep-alive
 
 on:
   schedule:
-    - cron: '17 8 * * *'
-  workflow_dispatch:
+    - cron: "0 12 */3 * *"   # cada 3 días a las 12:00 UTC
+  workflow_dispatch:          # permite ejecutarlo a mano desde la pestaña Actions
 
 jobs:
-  keep-alive:
+  ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Consultar Supabase
+      - name: Consulta a la tabla profiles
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          curl --fail-with-body --silent --show-error \
-            --retry 3 \
-            --max-time 30 \
-            "$SUPABASE_URL/rest/v1/posts?select=id&limit=1" \
-            -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY"
-            
+          status=$(curl -s -o response.json -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY")
+          echo "HTTP $status"
+          cat response.json
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            exit 1
+          fi
